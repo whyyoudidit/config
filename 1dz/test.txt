@@ -1,0 +1,15 @@
+
+cd catalog5
+ls
+cd /catalog3/catalog4
+ls
+cd -
+cd catalog2
+cd ..
+cd /catalog3
+cd ~
+touch file4.txt
+touch file5.txt file6.txt
+touch /catalog1/catalog2 file2.txt
+whoami
+exit

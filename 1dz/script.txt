@@ -1,0 +1,7 @@
+ls
+cd catalog1
+ls
+touch file1.txt
+whoami
+cd ~
+exit
