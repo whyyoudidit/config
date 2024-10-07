@@ -64,13 +64,13 @@ def cd(cur_dir):
             prev = path
             path = mem
             return
-        pattern = r'(../)+'
+        pattern = r'(../){2,}|(../)+\.\.'
         if (re.match(pattern, res_comm)):
-            for h in range(res_comm.count("/")):
+            for h in range(res_comm.count("..")):
                 if ( path== "" or path.count("/")==0):
                     prev = path
                     path = ""
-                    if (h==res_comm.count("/")-1):
+                    if (h==res_comm.count("..")-1):
                         return
         
                 else:
@@ -92,7 +92,7 @@ def cd(cur_dir):
                             i+=1
                     prev = path
                     path= res
-                    if (h==res_comm.count("/")-1):
+                    if (h==res_comm.count("..")-1):
                         return
                    
         for i in tarf.getnames():
