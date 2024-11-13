@@ -1,272 +1,140 @@
+# -*- coding: cp1251 -*-
 import os
 import tarfile
 import re
 import io
 import argparse
 
+arc = ""
+path = ""
+prev = ""
+
+def initialize_globals(archive_path):
+    """Функция для инициализации глобальных переменных."""
+    global arc, path, prev
+    arc = archive_path
+    path = ""
+    prev = ""
+
 def cd(cur_dir):
     global path
     global prev
-    tarf = tarfile.open(arc)
-    res_comm=""
-    for j in cur_dir[3::]:
-        if (j!=" "):
-            res_comm+=j
-   
-    if (".txt" in res_comm):
-        print(f"sh: cd: can't cd to {res_comm}: Not a directory")
-        return
-            
-    if (res_comm[0]=='/'):
-        for i in tarf.getnames():
-            if (i == res_comm[1::]):
-                prev = path
-                path = res_comm[1::]
-                return
-    else:
-        if (res_comm=="~"):
-            prev = path
-            path = ""
+    with tarfile.open(arc) as tarf:
+        res_comm = cur_dir.strip()[3:]
+
+        if ".txt" in res_comm:
+            print(f"sh: cd: can't cd to {res_comm}: Not a directory")
             return
-        if (res_comm==".."):
-            
-            if ( path== "" or path.count("/")==0):
+
+        if res_comm.startswith('/'):
+            if res_comm[1:] in tarf.getnames():
+                prev = path
+                path = res_comm[1:]
+                return
+        else:
+            if res_comm == "~":
                 prev = path
                 path = ""
                 return
-        
-            else:
-                kol = path.count("/")
-                flag=0
-                i=0
-                res=""
-                while (flag<kol):
-                    if (path[i]=="/"):
-                        flag+=1
-                        if (flag<kol):
-                            
-                            res+=path[i]
-                            i+=1
-                        else:
-                            break
-                    else:
-                        res+=path[i]
-                        i+=1
+            if res_comm == "..":
                 prev = path
-                path= res
-                return
-        if (res_comm=="-"):
-            if (prev!=""):
-                print(f"/{prev}")
-            else:
-                print("/root")
-            mem = prev
-            prev = path
-            path = mem
-            return
-        pattern = r'(../){2,}|(../)+\.\.'
-        if (re.match(pattern, res_comm)):
-            for h in range(res_comm.count("..")):
-                if ( path== "" or path.count("/")==0):
-                    prev = path
+                if path == "" or path.count("/") == 0:
                     path = ""
-                    if (h==res_comm.count("..")-1):
-                        return
-        
                 else:
-                    kol = path.count("/")
-                    flag=0
-                    i=0
-                    res=""
-                    while (flag<kol):
-                        if (path[i]=="/"):
-                            flag+=1
-                            if (flag<kol):
-                            
-                                res+=path[i]
-                                i+=1
-                            else:
-                                break
-                        else:
-                            res+=path[i]
-                            i+=1
-                    prev = path
-                    path= res
-                    if (h==res_comm.count("..")-1):
-                        return
-                   
-        for i in tarf.getnames():
-            if (path!=""):
-                if (i==path+'/'+res_comm):
-                    prev = path
-                    path=path+'/'+res_comm
-                    return
-            else:
-                if (i==res_comm):
-                    prev = path
-                    path=res_comm
-                    return
-    
-    print(f"sh: cd: can't cd to {res_comm}: No such file or directory")
+                    path = os.path.dirname(path.rstrip('/'))
+                return
+            if res_comm == "-":
+                print(f"/{prev or 'root'}")
+                prev, path = path, prev
+                return
+
+            full_path = os.path.join(path, res_comm)
+            # Проверка для директорий
+            if full_path in tarf.getnames() or full_path + '/' in tarf.getnames():
+                prev = path
+                path = full_path
+                return
+
+        print(f"sh: cd: can't cd to {res_comm}: No such file or directory")
+
+
 
 def ls(cur_dir):
-    tarf = tarfile.open(arc)
-    for i in tarf.getnames():
-        
-        
-        if (os.path.dirname(i) == cur_dir and cur_dir!=""):
-            print(i[len(path)+1::], end=" ")
-        elif(os.path.dirname(i) == cur_dir):
-            print(i, end=" ")
-    print("")
+    with tarfile.open(arc) as tarf:
+        entries = [name for name in tarf.getnames() if os.path.dirname(name) == cur_dir or name.startswith(cur_dir) and cur_dir == ""]
+        if entries:
+            # Убираем завершающий '/' для директорий
+            output = " ".join(os.path.basename(entry.rstrip('/')) for entry in entries if entry != cur_dir)
+            print(output)
+        else:
+            print("")
+
+
 def whoami():
     print("vladislav")
-def touch(file):
-    n=b''
-    tarf = tarfile.open(arc, 'a')
-    if (' ' not in file):
-       
-        if ('/' not in file):
-            
-            if(path!=''):
-                for name in tarf.getnames():
-                    if (path+"/"+file==name):
-                        return
-                full_path = f"{path}/{file}"   
-            else:
-                full_path = file
-                for name in tarf.getnames():
-                    if (file==name):
-                        return
-            tarinfo = tarfile.TarInfo(name=full_path)
-            tarinfo.size = len(n) 
-            tarf.addfile(tarinfo, io.BytesIO(n))
-            tarf.close()
-            return
-        else:
-            file = file[1::]
-          
-            for name in tarf.getnames():
-                if (file==name):
-                    return
-            full_path = file
-            tarinfo = tarfile.TarInfo(name=full_path)
-            tarinfo.size = len(n) 
-            tarf.addfile(tarinfo, io.BytesIO(n))
-            tarf.close()
-            return
-    else:
-        files = file.split()
-        for i in files:
-            for name in tarf.getnames():
-                if(path+'/'+i==name):
-                    files.remove(i)
-  
-        for file in files:
-            full_path = f"{path}/{file}"   
-            tarinfo = tarfile.TarInfo(name=full_path)
-            tarinfo.size = len(n) 
-            tarf.addfile(tarinfo, io.BytesIO(n))
-        tarf.close()
-        return
 
-def vshell(cur_dir, listik=[], is_test=0):
-    
-    global arc
+def touch(file):
+    n = b''
+    with tarfile.open(arc, 'a') as tarf:
+        full_path = os.path.join(path, file)
+        if full_path in tarf.getnames():
+            return
+        tarinfo = tarfile.TarInfo(name=full_path)
+        tarinfo.size = len(n)
+        tarf.addfile(tarinfo, io.BytesIO(n))
+
+def vshell(cur_dir, listik=[]):
     global path
-    global prev
-    
-    if (len(listik)==0):
+    if not listik:
         while True:
-            if(path==""):
-  
-                command = input(f"vladislav@localhost:{path}~# ")
-            else:
-         
-                command = input(f"vladislav@localhost:/{path}# ")
-            if (command=="ls"):
-                ls(path)
-            elif(len(command)>=2 and command[0]== "c" and command[1]== "d" ):
-                pattern = r'.{2}[ ]*$'
-                if (re.fullmatch(pattern, command)):
-                    prev = path
-                    path = ""
-                    continue 
-                if(command[2]!=" "):
-                    continue
-                cd(command)
-            elif(command=="exit"):
-                break
-            elif (command==""):
-                continue
-            elif (command=="whoami"):
-                whoami()
-            elif ("touch" in command and len(command)>=7):
-                touch(command[6::])
-            else:
-               print("sh: ",command, ":", " not found", sep="")
+            command = input(f"vladislav@localhost:{path or '~'}# ")
+            handle_command(command)
     else:
-        for i in range(len(listik)):
-            command = listik[i]
-            if (command=="ls"):
-                
-                ls(path)
-            elif(len(command)>=2 and command[0]== "c" and command[1]== "d" ):
-                pattern = r'.{2}[ ]*$'
-                if (re.fullmatch(pattern, command)):
-                    prev = path
-                    path = ""
-                    continue
-                if(command[2]!=" "):
-                    continue
-                cd(command)
-            elif(command=="exit"):
-                break
-            elif (command==""):
-                continue
-            elif (command=="whoami"):
-                whoami()
-            elif ("touch" in command and len(command)>=7):
-                touch(command[6::])
-            else:
-               print("sh: ",command, ":", " not found", sep="")
-        
-        if (not(is_test)):
-            vshell("")
-            
+        for command in listik:
+            handle_command(command)
+        vshell("")
+
+def handle_command(command):
+    if command == "ls":
+        ls(path)
+    elif command.startswith("cd "):
+        cd(command)
+    elif command == "whoami":
+        whoami()
+    elif command.startswith("touch "):
+        touch(command[6:])
+    elif command == "exit":
+        raise SystemExit
+    else:
+        print(f"sh: {command}: not found")
+
 class VM:
     def __init__(self, filesystem_archive: str):
         self.currentpath = ""
         self.filesystem = tarfile.TarFile(filesystem_archive)
 
-    def start(self, arc):
-     
-      vshell(path)
-      
-    def run_script(self, script_file: str, is_test):
-        
+    def start(self):
+        vshell(path)
+
+    def run_script(self, script_file: str):
         try:
             with open(script_file, 'r') as file:
-                listik=[]
-                for line in file:
-                    listik.append(line.strip())
-                vshell(path, listik, is_test)   
+                listik = [line.strip() for line in file]
+                vshell(path, listik)
         except FileNotFoundError:
             print(f"Script file '{script_file}' not found.")
-    
+
 if __name__ == '__main__':
-    path =""
-    prev =""
     parser = argparse.ArgumentParser()
-    parser.add_argument('--archive', type=str, required=True)
-    parser.add_argument('--script', type=str, required=True)
-    parser.add_argument('--test', type=bool, required=False)
+    parser.add_argument('--archive', type=str, required=True, help="Путь к архиву файловой системы")
+    parser.add_argument('--script', type=str, required=True, help="Путь к скрипту с командами")
     args = parser.parse_args()
-    arc = args.archive
+
+    initialize_globals(args.archive)
+
     vm = VM(args.archive)
-    if (args.test):
-        vm.run_script(args.script, True)
-        
+
     if args.script:
-        
-        vm.run_script(args.script, False)
+        vm.run_script(args.script)
+    
+    vshell("")
