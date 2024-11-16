@@ -1,0 +1,4 @@
+teachers = 2541
+[database_mirea]
+database_settings = 'relational'
+table_entries = $[teachers]
