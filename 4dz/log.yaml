@@ -1,0 +1,15 @@
+- command: LOAD_CONST
+  args:
+  - 297
+  hex: 6C 4A
+- command: READ_MEM
+  args:
+  - 29
+  hex: 7B 07 00 00 00
+- command: WRITE_MEM
+  args:
+  - 497
+  hex: 70 7C 00 00 00
+- command: BITREVERSE
+  args: []
+  hex: '13'
